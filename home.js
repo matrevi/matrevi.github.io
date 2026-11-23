@@ -30,22 +30,48 @@ if (bar && cover) {
   addEventListener('resize', syncCurrent);
 }
 
-// In-page links (cover CTA, scroll hint, nav bar, mobile drawer): land with the
-// section's eyebrow line (e.g. "WHAT WE DO") 20px below the fixed bar.
+// In-page links (cover CTA, scroll hint, nav bar, mobile drawer, footer): land with
+// the section's eyebrow line (e.g. "WHAT WE DO") 20px below the fixed bar.
 // Without this, scroll-padding-top and .band's scroll-margin-top stack up and
 // leave a large gap that shows the bottom of the previous section.
-if (bar) document.querySelectorAll('.cover a[href^="#"], .home-bar a[href^="#"]:not(.brand)').forEach(link => {
-  const eyebrow = document.querySelector(link.hash + ' .eyebrow');
-  if (!eyebrow) return;
-  link.addEventListener('click', event => {
-    event.preventDefault();
-    // offsetTop ignores the reveal transform, so this is the eyebrow's resting position.
-    let top = 0;
-    for (let el = eyebrow; el; el = el.offsetParent) top += el.offsetTop;
-    scrollTo({ top: Math.max(0, top - bar.offsetHeight - 20), behavior: reduce ? 'auto' : 'smooth' });
-    history.pushState(null, '', link.hash);
+const landingTop = eyebrow => {
+  // offsetTop ignores the reveal transform, so this is the eyebrow's resting position.
+  let top = 0;
+  for (let el = eyebrow; el; el = el.offsetParent) top += el.offsetTop;
+  const max = document.documentElement.scrollHeight - innerHeight;
+  return Math.max(0, Math.min(max, top - bar.offsetHeight - 20));
+};
+let landing = null;
+const stopLanding = () => { if (landing) { clearTimeout(landing.timer); landing = null; } };
+// Images or fonts that load during the scroll can shift the layout, so once the
+// scroll settles, check the target again and correct it (a few times at most).
+const settleLanding = () => {
+  if (!landing) return;
+  clearTimeout(landing.timer);
+  landing.timer = setTimeout(() => {
+    if (!landing) return;
+    const top = landingTop(landing.eyebrow);
+    if (Math.abs(scrollY - top) > 1 && landing.tries++ < 4) scrollTo({ top, behavior: 'auto' });
+    else stopLanding();
+  }, 150);
+};
+if (bar) {
+  addEventListener('scroll', settleLanding, { passive: true });
+  // The visitor took over the scroll: stop correcting.
+  for (const type of ['wheel', 'touchstart', 'keydown']) addEventListener(type, stopLanding, { passive: true });
+  document.querySelectorAll('a[href^="#"]:not(.brand):not(.skip)').forEach(link => {
+    const eyebrow = link.hash.length > 1 && document.querySelector(link.hash + ' .eyebrow');
+    if (!eyebrow) return;
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      stopLanding();
+      landing = { eyebrow, tries: 0, timer: 0 };
+      scrollTo({ top: landingTop(eyebrow), behavior: reduce ? 'auto' : 'smooth' });
+      settleLanding();
+      history.pushState(null, '', link.hash);
+    });
   });
-});
+}
 
 const revealer = new IntersectionObserver(entries => {
   for (const entry of entries) {
