@@ -1,0 +1,50 @@
+// Home page: scroll header, reveal-on-scroll, card glow.
+// The `js` class is set by an inline script in <head> so revealed sections never flash.
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Show the header once the cover has scrolled out of view.
+const bar = document.querySelector('.home-bar');
+const cover = document.querySelector('.cover');
+if (bar && cover) {
+  const syncBar = () => {
+    bar.dataset.state = scrollY > cover.offsetHeight * .6 ? 'shown' : 'hidden';
+  };
+  syncBar();
+  addEventListener('scroll', syncBar, { passive: true });
+
+  // Highlight the nav link of the section in view.
+  const links = [...bar.querySelectorAll('.navlinks a')];
+  const spy = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      for (const link of links) link.toggleAttribute('aria-current', link.hash === '#' + entry.target.id);
+    }
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  for (const link of links) {
+    const section = document.querySelector(link.hash);
+    if (section) spy.observe(section);
+  }
+}
+
+const revealer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    entry.target.classList.add('is-in');
+    revealer.unobserve(entry.target);
+  }
+}, { threshold: .15 });
+document.querySelectorAll('.reveal').forEach(el => revealer.observe(el));
+
+// Amber glow that follows the pointer across cards.
+if (matchMedia('(hover: hover) and (pointer: fine)').matches) document.querySelectorAll('.glow-card').forEach(card => {
+  card.addEventListener('pointermove', event => {
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (event.clientX - rect.left) + 'px');
+    card.style.setProperty('--my', (event.clientY - rect.top) + 'px');
+  }, { passive: true });
+});
+
+// Close the mobile drawer after a link is chosen.
+document.querySelectorAll('.drawer-panel a').forEach(link => {
+  link.addEventListener('click', () => link.closest('details').removeAttribute('open'));
+});
