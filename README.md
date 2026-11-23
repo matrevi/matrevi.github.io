@@ -41,4 +41,4 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 GitHub Pages 从 `main` 分支根目录发布，正式域名由 [CNAME](CNAME) 指定。宣传册 PDF 和 LaTeX 源码在[宣传册仓库](https://github.com/matrevi/matrevi-brochure)维护。
 
-宣传册阅读页通过本地 PDF.js 连续展示 [PDF 文件](assets/brochure.pdf)。更新宣传册时，将宣传册仓库的 `main.pdf` 同步至此文件。
+宣传册阅读页通过本地 PDF.js 连续展示 [PDF 文件](assets/brochure.pdf)。这个文件由宣传册仓库的发布工作流维护。将新版 `main.pdf` 推送到宣传册仓库的 `main` 分支后，工作流会自动同步并校验线上文件。
