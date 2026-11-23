@@ -20,7 +20,7 @@
 
 双方先确定优先处理的环节和预期产出，再用日常及异常样本试跑。业务人员确认结果后，团队开发功能、对接数据与权限，最后沿真实流程验收，移交配置与操作手册。官网以单据字段提取为例，说明如何核对准确率、处理耗时和人工接管流程。
 
-[交付流程](https://matrevi.com/delivery.html) · [验收与报价](https://matrevi.com/acceptance.html) · [核心团队](https://matrevi.com/team.html)
+[交付流程](https://matrevi.com/delivery.html) · [验收与报价](https://matrevi.com/#acceptance) · [核心团队](https://matrevi.com/team.html)
 
 ## 本地预览与维护
 
@@ -34,7 +34,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 | 修改内容 | 对应文件 |
 | --- | --- |
-| 首页与各章内容 | [首页](index.html)、[业务](services.html)、[案例](cases.html)、[交付](delivery.html)、[验收](acceptance.html)、[团队](team.html)、[联系](contact.html) |
+| 首页与各章内容 | [首页](index.html)（含验收与报价）、[业务](services.html)、[案例](cases.html)、[交付](delivery.html)、[团队](team.html)、[联系](contact.html) |
 | 品牌配色和移动端排版 | [site.css](site.css) |
 | 首屏矩阵插画、方向键翻页与旧链接跳转 | [matrix.js](matrix.js)、[navigation.js](navigation.js) |
 | 品牌标识、产品截图和团队照片 | [assets/](assets/) |
