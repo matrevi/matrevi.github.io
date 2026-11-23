@@ -7,10 +7,11 @@ const lanes = 64;
 const samples = 126;
 let width, height, frame, previous = 0, phase = 0;
 
-const logo = document.querySelector('.cover-logo');
+const copy = document.querySelector('.lit-copy');
+const litElements = [...copy.children];
 const spotlight = { x: 0, y: 0, targetX: 0, targetY: 0, strength: 0, targetStrength: 0 };
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let logoBounds, canvasBounds;
+let copyBounds, canvasBounds;
 let introTime = !matchMedia('(any-hover: hover)').matches && !reducedMotion.matches ? 0 : null;
 
 function fadeSpotlight() {
@@ -19,12 +20,12 @@ function fadeSpotlight() {
 }
 
 function followPointer(event) {
-  if (event.pointerType === 'touch' || !logoBounds) return;
+  if (event.pointerType === 'touch' || !copyBounds) return;
   introTime = null;
-  const x = event.clientX - logoBounds.left;
-  const y = event.clientY - logoBounds.top;
-  const gapX = Math.max(-x, x - logoBounds.width, 0);
-  const gapY = Math.max(-y, y - logoBounds.height, 0);
+  const x = event.clientX - copyBounds.left;
+  const y = event.clientY - copyBounds.top;
+  const gapX = Math.max(-x, x - copyBounds.width, 0);
+  const gapY = Math.max(-y, y - copyBounds.height, 0);
   spotlight.targetStrength = Math.max(0, 1 - Math.hypot(gapX, gapY) / 72);
   spotlight.targetX = x;
   spotlight.targetY = y;
@@ -37,9 +38,9 @@ function followPointer(event) {
 function updateSpotlight(delta) {
   if (introTime !== null) {
     introTime += delta;
-    const progress = Math.min(1, introTime / 1150);
-    spotlight.targetX = logoBounds.width * progress;
-    spotlight.targetY = logoBounds.height / 2;
+    const progress = Math.min(1, introTime / 1500);
+    spotlight.targetX = copyBounds.width * (.12 + .76 * progress);
+    spotlight.targetY = copyBounds.height * (.04 + .96 * progress);
     spotlight.targetStrength = .82 * Math.sin(Math.PI * progress);
     if (progress === 1) fadeSpotlight();
   }
@@ -50,9 +51,9 @@ function updateSpotlight(delta) {
   const fade = 1 - Math.exp(-delta / (spotlight.targetStrength ? 60 : 80));
   spotlight.strength += (spotlight.targetStrength - spotlight.strength) * fade;
   if (!spotlight.targetStrength && spotlight.strength < .01) spotlight.strength = 0;
-  logo.style.setProperty('--light-x', spotlight.x.toFixed(1) + 'px');
-  logo.style.setProperty('--light-y', spotlight.y.toFixed(1) + 'px');
-  logo.style.setProperty('--light-strength', spotlight.strength.toFixed(3));
+  copy.style.setProperty('--light-x', spotlight.x.toFixed(1) + 'px');
+  copy.style.setProperty('--light-y', spotlight.y.toFixed(1) + 'px');
+  copy.style.setProperty('--light-strength', spotlight.strength.toFixed(3));
 }
 
 function drawField() {
@@ -137,9 +138,9 @@ function drawField() {
   }
 
   if (spotlight.strength) {
-    const x = logoBounds.left - canvasBounds.left + spotlight.x;
-    const y = logoBounds.top - canvasBounds.top + spotlight.y;
-    const radius = Math.min(145, logoBounds.width * .52);
+    const x = copyBounds.left - canvasBounds.left + spotlight.x;
+    const y = copyBounds.top - canvasBounds.top + spotlight.y;
+    const radius = Math.min(145, copyBounds.width * .52);
     const glow = ink.createRadialGradient(x, y, 0, x, y, radius);
     glow.addColorStop(0, '#ffd6a0');
     glow.addColorStop(1, 'rgba(255, 183, 90, 0)');
@@ -178,9 +179,17 @@ function updatePlayback() {
   previous = 0;
   if (!document.hidden) frame = requestAnimationFrame(tick);
 }
-function resize() {
-  logoBounds = logo.getBoundingClientRect();
+function measureLightTargets() {
+  copyBounds = copy.getBoundingClientRect();
+  for (const element of litElements) {
+    const rect = element.getBoundingClientRect();
+    element.style.setProperty('--offset-x', (rect.left - copyBounds.left) + 'px');
+    element.style.setProperty('--offset-y', (rect.top - copyBounds.top) + 'px');
+  }
   canvasBounds = canvas.getBoundingClientRect();
+}
+function resize() {
+  measureLightTargets();
   width = canvas.clientWidth; height = canvas.clientHeight;
   if (!width || !height) return;
   const density = Math.min(devicePixelRatio, 1.5, 1800 / width);
@@ -193,13 +202,12 @@ if (ink && glass) {
   resize();
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
-  observer.observe(logo);
+  observer.observe(copy);
   canvas.parentElement.addEventListener('pointermove', followPointer, { passive: true });
   canvas.parentElement.addEventListener('pointerleave', fadeSpotlight);
   window.addEventListener('blur', fadeSpotlight);
   window.addEventListener('scroll', () => {
-    logoBounds = logo.getBoundingClientRect();
-    canvasBounds = canvas.getBoundingClientRect();
+    measureLightTargets();
     fadeSpotlight();
   }, { passive: true });
   document.addEventListener('visibilitychange', updatePlayback);
