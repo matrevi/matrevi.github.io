@@ -2,7 +2,7 @@
 
 元子矩阵为企业定制 AI 工作流与业务软件。我们从一项具体操作入手，用真实样本验证效果，再把数据输入、模型处理、人工复核和结果回写接入现有系统。
 
-[访问官网](https://matrevi.com/) · [查看业务宣传册（PDF）](https://github.com/matrevi/matrevi-brochure/blob/main/main.pdf) · [联系团队](https://matrevi.com/contact.html)
+[访问官网](https://matrevi.com/) · [查看业务宣传册（PDF）](https://matrevi.com/brochure.html) · [联系团队](https://matrevi.com/contact.html)
 
 [![元子矩阵官网首页，展示企业 AI 工作流定制与实施服务](.github/homepage.jpg)](https://matrevi.com/)
 
@@ -40,3 +40,5 @@ python3 -m http.server 8000 --bind 127.0.0.1
 | 品牌标识、产品截图和团队照片 | [assets/](assets/) |
 
 GitHub Pages 从 `main` 分支根目录发布，正式域名由 [CNAME](CNAME) 指定。宣传册 PDF 和 LaTeX 源码在[宣传册仓库](https://github.com/matrevi/matrevi-brochure)维护。
+
+宣传册阅读页通过本地 PDF.js 连续展示 [PDF 文件](assets/brochure.pdf)。更新宣传册时，将宣传册仓库的 `main.pdf` 同步至此文件。

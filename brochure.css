@@ -1,0 +1,18 @@
+:root { --bar: 60px; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #eae6df; color: #fff; font: 16px/1.5 system-ui, sans-serif; }
+header { height: var(--bar); display: flex; align-items: center; gap: 18px; padding: 0 max(16px, 4vw); background: #171512; }
+.brand img { width: 90px; display: block; }
+h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+#pages { margin-left: auto; font-variant-numeric: tabular-nums; color: #d4cabe; }
+.download { color: #ffc067; text-underline-offset: 4px; white-space: nowrap; }
+#paper { position: absolute; inset: var(--bar) 0 0; overflow: auto; }
+.pdfViewer .page { box-sizing: content-box; }
+#status { position: relative; margin: 32px auto; width: fit-content; padding: 10px; color: #493b29; }
+#status a { color: inherit; }
+@media (max-width: 540px) {
+  :root { --bar: 50px; }
+  header { gap: 10px; font-size: 14px; padding: 0 12px; }
+  .brand img { width: 62px; }
+  h1 { font-size: .88rem; }
+}

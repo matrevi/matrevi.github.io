@@ -3,12 +3,9 @@ const canvas = document.getElementById('matrix');
 const surface = document.createElement('canvas');
 const ink = surface.getContext('2d');
 const glass = canvas.getContext('2d');
-const motion = document.querySelector('.motion');
-const preference = matchMedia('(prefers-reduced-motion: reduce)');
 const lanes = 64;
 const samples = 126;
 let width, height, frame, previous = 0, phase = 0;
-let paused = preference.matches;
 
 function drawField() {
   const tall = height > width;
@@ -114,11 +111,7 @@ function tick(now) {
 function updatePlayback() {
   cancelAnimationFrame(frame);
   previous = 0;
-  const label = paused ? '播放背景动效' : '暂停背景动效';
-  motion.title = label;
-  motion.setAttribute('aria-label', label);
-  motion.firstElementChild.textContent = paused ? '▶' : 'Ⅱ';
-  if (!paused && !document.hidden) frame = requestAnimationFrame(tick);
+  if (!document.hidden) frame = requestAnimationFrame(tick);
 }
 function resize() {
   width = canvas.clientWidth; height = canvas.clientHeight;
@@ -132,9 +125,6 @@ function resize() {
 if (ink && glass) {
   resize();
   new ResizeObserver(resize).observe(canvas);
-  motion.hidden = false;
-  motion.addEventListener('click', () => { paused = !paused; updatePlayback(); });
-  preference.addEventListener('change', () => { paused = preference.matches; updatePlayback(); });
   document.addEventListener('visibilitychange', updatePlayback);
   updatePlayback();
 }
