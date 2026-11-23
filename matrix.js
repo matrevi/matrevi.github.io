@@ -7,6 +7,54 @@ const lanes = 64;
 const samples = 126;
 let width, height, frame, previous = 0, phase = 0;
 
+const logo = document.querySelector('.cover-logo');
+const spotlight = { x: 0, y: 0, targetX: 0, targetY: 0, strength: 0, targetStrength: 0 };
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let logoBounds, canvasBounds;
+let introTime = !matchMedia('(any-hover: hover)').matches && !reducedMotion.matches ? 0 : null;
+
+function fadeSpotlight() {
+  introTime = null;
+  spotlight.targetStrength = 0;
+}
+
+function followPointer(event) {
+  if (event.pointerType === 'touch' || !logoBounds) return;
+  introTime = null;
+  const x = event.clientX - logoBounds.left;
+  const y = event.clientY - logoBounds.top;
+  const gapX = Math.max(-x, x - logoBounds.width, 0);
+  const gapY = Math.max(-y, y - logoBounds.height, 0);
+  spotlight.targetStrength = Math.max(0, 1 - Math.hypot(gapX, gapY) / 72);
+  spotlight.targetX = x;
+  spotlight.targetY = y;
+  if (spotlight.strength === 0) {
+    spotlight.x = x;
+    spotlight.y = y;
+  }
+}
+
+function updateSpotlight(delta) {
+  if (introTime !== null) {
+    introTime += delta;
+    const progress = Math.min(1, introTime / 1150);
+    spotlight.targetX = logoBounds.width * progress;
+    spotlight.targetY = logoBounds.height / 2;
+    spotlight.targetStrength = .82 * Math.sin(Math.PI * progress);
+    if (progress === 1) fadeSpotlight();
+  }
+  if (!spotlight.strength && !spotlight.targetStrength) return;
+  const follow = reducedMotion.matches ? 1 : 1 - Math.exp(-delta / 65);
+  spotlight.x += (spotlight.targetX - spotlight.x) * follow;
+  spotlight.y += (spotlight.targetY - spotlight.y) * follow;
+  const fade = 1 - Math.exp(-delta / (spotlight.targetStrength ? 60 : 80));
+  spotlight.strength += (spotlight.targetStrength - spotlight.strength) * fade;
+  if (!spotlight.targetStrength && spotlight.strength < .01) spotlight.strength = 0;
+  logo.style.setProperty('--light-x', spotlight.x.toFixed(1) + 'px');
+  logo.style.setProperty('--light-y', spotlight.y.toFixed(1) + 'px');
+  logo.style.setProperty('--light-strength', spotlight.strength.toFixed(3));
+}
+
 function drawField() {
   const tall = height > width;
   const extent = Math.min(height, width * .96);
@@ -88,6 +136,21 @@ function drawField() {
     }
   }
 
+  if (spotlight.strength) {
+    const x = logoBounds.left - canvasBounds.left + spotlight.x;
+    const y = logoBounds.top - canvasBounds.top + spotlight.y;
+    const radius = Math.min(145, logoBounds.width * .52);
+    const glow = ink.createRadialGradient(x, y, 0, x, y, radius);
+    glow.addColorStop(0, '#ffd6a0');
+    glow.addColorStop(1, 'rgba(255, 183, 90, 0)');
+    ink.save();
+    ink.globalCompositeOperation = 'color-dodge';
+    ink.globalAlpha = .66 * spotlight.strength;
+    ink.fillStyle = glow;
+    ink.fillRect(x - radius, y - radius, 2 * radius, 2 * radius);
+    ink.restore();
+  }
+
   const pitch = tall ? 9 : 15;
   const scale = surface.width / width;
   for (let x = 0; x < width; x += pitch) {
@@ -102,7 +165,9 @@ function drawField() {
 
 function tick(now) {
   if (now - previous >= 33) {
-    if (previous) phase += Math.min(now - previous,80) / 1000;
+    const delta = previous ? Math.min(now - previous, 80) : 0;
+    phase += delta / 1000;
+    updateSpotlight(delta);
     previous = now;
     drawField();
   }
@@ -114,6 +179,8 @@ function updatePlayback() {
   if (!document.hidden) frame = requestAnimationFrame(tick);
 }
 function resize() {
+  logoBounds = logo.getBoundingClientRect();
+  canvasBounds = canvas.getBoundingClientRect();
   width = canvas.clientWidth; height = canvas.clientHeight;
   if (!width || !height) return;
   const density = Math.min(devicePixelRatio, 1.5, 1800 / width);
@@ -124,7 +191,17 @@ function resize() {
 }
 if (ink && glass) {
   resize();
-  new ResizeObserver(resize).observe(canvas);
+  const observer = new ResizeObserver(resize);
+  observer.observe(canvas);
+  observer.observe(logo);
+  canvas.parentElement.addEventListener('pointermove', followPointer, { passive: true });
+  canvas.parentElement.addEventListener('pointerleave', fadeSpotlight);
+  window.addEventListener('blur', fadeSpotlight);
+  window.addEventListener('scroll', () => {
+    logoBounds = logo.getBoundingClientRect();
+    canvasBounds = canvas.getBoundingClientRect();
+    fadeSpotlight();
+  }, { passive: true });
   document.addEventListener('visibilitychange', updatePlayback);
   updatePlayback();
 }

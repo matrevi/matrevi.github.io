@@ -47,7 +47,19 @@ footer{background:#151514;color:#d7d3ca;font-size:14px}footer .wrap{display:flex
   background: radial-gradient(ellipse at 50% 51%, #120e0bd9 0%, #120e0ba6 19%, transparent 52%);
 }
 .hero-copy { text-align: center; }
-.cover-logo { display: block; width: clamp(200px, 27vw, 420px); height: auto; margin: 0 auto 28px; }
+.cover-logo { position: relative; display: block; width: clamp(200px, 27vw, 420px); height: auto; margin: 0 auto 28px; }
+.cover-logo img { display: block; width: 100%; height: auto; }
+.cover-logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--light-strength, 0);
+  background: radial-gradient(ellipse 78px 64px at var(--light-x, 50%) var(--light-y, 50%),
+    #fff8dd 0%, #ffcf79 34%, rgba(247, 171, 83, .48) 62%, transparent 100%);
+  -webkit-mask: url("assets/wordmark-light.png") center / 100% 100% no-repeat;
+  mask: url("assets/wordmark-light.png") center / 100% 100% no-repeat;
+}
 .cover h1 { margin: 0; font-size: clamp(22px, 2.55vw, 40px); line-height: 1.35; letter-spacing: .035em; font-weight: 650; }
 .lead { margin: 14px 0 0; color: #eee2cf; font-size: clamp(15px, 1.15vw, 18px); line-height: 1.8; }
 .mobile-break { display: none; }
