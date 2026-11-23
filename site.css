@@ -118,6 +118,7 @@ article h2{font-size:1.18rem;line-height:1.45}article p,article dd{color:#514d47
 .home-bar[data-state="hidden"] { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 .home-bar .navlinks a { color: #d8d3ca; }
 .home-bar .navlinks a[aria-current] { color: var(--amber); }
+.home-bar .contact-link[aria-current] { background: #302719; color: #ffd28a; border-color: #ffb23e; }
 .band { padding-block: clamp(72px, 10vw, 128px); border-top: 1px solid #1f1b16; scroll-margin-top: var(--head); }
 .band-head { max-width: 40em; margin-bottom: clamp(32px, 4vw, 52px); }
 .band .eyebrow, .eyebrow { font: 650 .78rem/1.5 "SFMono-Regular", Consolas, monospace; letter-spacing: .16em; color: var(--d-amber); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
