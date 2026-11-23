@@ -1,59 +1,140 @@
-// Isometric drawing for the cover. Coordinates are expressed in grid cells.
+// Light threads are rendered into one surface and sampled through vertical glass ribs.
 const canvas = document.getElementById('matrix');
-const ctx = canvas.getContext('2d');
-function project(x, y, h = 0) {
-  return [400 + (x - y) * 24, 200 + (x + y) * 11.5 - h];
-}
-function shape(points, fill, outline, width = 1) {
-  ctx.beginPath();
-  points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-  if (fill) { ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); }
-  if (outline) { ctx.strokeStyle = outline; ctx.lineWidth = width; ctx.stroke(); }
-}
-function trace(points, color, width) {
-  shape(points.map(point => project(...point)), null, color, width);
-}
-function block(x,y,size,bottom,height,colors) {
-  const corners = [[x,y],[x+size,y],[x+size,y+size],[x,y+size]];
-  const top = corners.map(([a,b]) => project(a,b,height));
-  const base = corners.map(([a,b]) => project(a,b,bottom));
-  shape([top[3],top[2],base[2],base[3]],colors[1],colors[3]);
-  shape([top[2],top[1],base[1],base[2]],colors[2],colors[3]);
-  shape(top,colors[0],colors[3]);
-}
-function drawMatrix() {
-  const scale = Math.min(devicePixelRatio || 1, 3) * canvas.clientWidth / 800;
-  canvas.width = Math.max(1, Math.round(800*scale));
-  canvas.height = Math.max(1, Math.round(450*scale));
-  ctx.setTransform(scale,0,0,scale,0,0);
-  for (let n=-8;n<=8;n++) {
-    trace([[-8,n],[8,n]],'#54463572',1);
-    trace([[n,-8],[n,8]],'#54463572',1);
+const surface = document.createElement('canvas');
+const ink = surface.getContext('2d');
+const glass = canvas.getContext('2d');
+const motion = document.querySelector('.motion');
+const preference = matchMedia('(prefers-reduced-motion: reduce)');
+const lanes = 64;
+const samples = 126;
+let width, height, frame, previous = 0, phase = 0;
+let paused = preference.matches;
+
+function drawField() {
+  const tall = height > width;
+  const extent = Math.min(height, width * .96);
+  ink.fillStyle = '#14100e';
+  ink.fillRect(0, 0, width, height);
+
+  // Each sampled column forms a rotated cross-section of the same folded sheet.
+  const columns = Array.from({length: samples + 1}, (_, i) => {
+    const t = i / samples;
+    const angle = t * 9.5 + .65 * Math.sin(phase * .36) - .28;
+    const x = (t * 1.46 - .23) * width;
+    const y = height * (.76 - .55 * t) + extent * .21 * Math.sin(t * 8.4 - .72 + .26 * Math.sin(phase * .54));
+    return {
+      x, y,
+      dx: extent * .115 * Math.cos(angle),
+      dy: extent * .28 * Math.sin(angle),
+      bend: extent * .115 * Math.cos(angle + .7)
+    };
+  });
+  function point(i, lane) {
+    const c = columns[i];
+    return [c.x + c.dx * lane, c.y + c.dy * lane + c.bend * (1 - lane * lane)];
   }
-  const amber = ['#ffba4d','#d88009','#95500b','#ffc96c'];
-  const slate = ['#49463b','#292a25','#35352d','#6d624d'];
-  const bronze = ['#a77b3e','#624721','#805b31','#c5914b'];
-  for (let lane=0;lane<5;lane++) {
-    const start = -3+lane*1.25;
-    trace([[-8,start],[-6.6,start],[-5.8,start+.8],[-3.6,start+.8]],'#c07d32',1.4);
-    trace([[start,4],[start,5.5],[start+.7,6.2],[start+.7,8]],'#b9863d',1.4);
-    const [x,y] = project(start+.7,8);
-    ctx.fillStyle='#ffb744';ctx.fillRect(x-2,y-2,4,4);
+
+  const light = ink.createLinearGradient(0, height, width, 0);
+  light.addColorStop(0, '#dc824a');
+  light.addColorStop(.17, '#ffe1aa');
+  light.addColorStop(.38, '#d4844c');
+  light.addColorStop(.52, '#967050');
+  light.addColorStop(.72, '#ffdda0');
+  light.addColorStop(.88, '#ffc56b');
+  light.addColorStop(1, '#ad613c');
+  // Lay a continuous amber film beneath the finer matrix lines.
+  // Sampling both edges of each band keeps the highlights attached to the fold.
+  const bands = 24;
+  for (let band = 0; band < bands; band++) {
+    const edge = band / bands * 2 - 1;
+    const highlight = (.5 + .5 * Math.cos(edge * 8.5 + phase * .18)) ** 3;
+    ink.fillStyle = light;
+    ink.globalAlpha = .035 + .21 * highlight;
+    ink.beginPath();
+    ink.moveTo(...point(0, edge));
+    for (let i = 1; i <= samples; i++) ink.lineTo(...point(i, edge));
+    for (let i = samples; i >= 0; i--) ink.lineTo(...point(i, edge + 2 / bands));
+    ink.closePath();
+    ink.fill();
   }
-  block(-4.4,-4.4,8.8,0,10,slate);
-  block(-4.2,-4.2,8.4,10,15,bronze);
-  block(-4.1,-4.1,8.2,15,24,slate);
-  // The central array rises in terraces, with illuminated cells following the diagonal.
-  for(let sum=0;sum<=14;sum++){
-    for(let i=0;i<8;i++){
-      const j=sum-i;
-      if(j<0 || j>7) continue;
-      const ridge=Math.max(0,1-Math.hypot(i-3.4,j-3.1)/4.4);
-      const height=28+Math.round(ridge*6)*13+((i*7+j*3)%3)*4;
-      const hot=(i===j || i===j-1) && i>0 && i<7;
-      const colors=hot ? amber : ((i+2*j)%5===0?bronze:slate);
-      block(i-3.93,j-3.93,.91,24,height,colors);
+  ink.strokeStyle = light;
+  for (let j = 0; j <= lanes; j++) {
+    const lane = j / lanes * 2 - 1;
+    const sheen = (.5 + .5 * Math.cos(lane * 11 - phase * .35)) ** 3;
+    ink.globalAlpha = .27 + .55 * sheen;
+    ink.lineWidth = (.9 + 1.4 * sheen) * Math.max(.7, width / 1450);
+    ink.beginPath();
+    for (let i = 0; i <= samples; i++) {
+      const [x, y] = point(i, lane);
+      if (i === 0) ink.moveTo(x,y);
+      else ink.lineTo(x,y);
+    }
+    ink.stroke();
+  }
+
+  // Rows of travelling samples tighten where the sheet turns edge-on.
+  ink.globalAlpha = 1;
+  const symbols = ['+', '×', '⊕'];
+  ink.font = (tall ? 10 : 13) + 'px monospace';
+  for (let row = 0; row < 36; row++) {
+    const pos = ((row / 36 + phase * .019) % 1) * samples;
+    const left = Math.floor(pos);
+    const mix = pos - left;
+    for (let j = 0; j <= 12; j++) {
+      const lane = j / 6 - 1;
+      const a = point(left, lane), b = point(left + 1, lane);
+      const x = a[0] + (b[0] - a[0]) * mix, y = a[1] + (b[1] - a[1]) * mix;
+      const operator = (row + j * 5) % 39 === 0;
+      ink.fillStyle = operator ? '#fff0c6' : '#ffc57eb3';
+      if (operator) ink.fillText(symbols[(row + j) % symbols.length], x, y);
+      else ink.fillRect(x,y,tall ? 1.2 : 1.8,tall ? 1.2 : 1.8);
     }
   }
+
+  const pitch = tall ? 9 : 15;
+  const scale = surface.width / width;
+  for (let x = 0; x < width; x += pitch) {
+    // Different magnification on the two faces produces a refracted seam.
+    const sample = Math.min(x + 2, width - 1);
+    glass.drawImage(surface, sample * scale, 0, pitch * .48 * scale, surface.height, x, 0, pitch * .72, height);
+    glass.drawImage(surface, Math.min(x + pitch * .50,width-1) * scale, 0, pitch * .50 * scale, surface.height, x + pitch * .72, 0, pitch * .28 + .4, height);
+    glass.fillStyle = 'rgba(255,219,174,.045)';
+    glass.fillRect(x,0,1,height);
+  }
 }
-if (ctx) { new ResizeObserver(drawMatrix).observe(canvas.parentElement); }
+
+function tick(now) {
+  if (now - previous >= 33) {
+    if (previous) phase += Math.min(now - previous,80) / 1000;
+    previous = now;
+    drawField();
+  }
+  frame = requestAnimationFrame(tick);
+}
+function updatePlayback() {
+  cancelAnimationFrame(frame);
+  previous = 0;
+  const label = paused ? '播放背景动效' : '暂停背景动效';
+  motion.title = label;
+  motion.setAttribute('aria-label', label);
+  motion.firstElementChild.textContent = paused ? '▶' : 'Ⅱ';
+  if (!paused && !document.hidden) frame = requestAnimationFrame(tick);
+}
+function resize() {
+  width = canvas.clientWidth; height = canvas.clientHeight;
+  if (!width || !height) return;
+  const density = Math.min(devicePixelRatio, 1.5, 1800 / width);
+  surface.width = canvas.width = Math.round(width * density);
+  surface.height = canvas.height = Math.round(height * density);
+  for (const context of [ink, glass]) context.setTransform(canvas.width/width, 0, 0, canvas.height/height, 0, 0);
+  drawField();
+}
+if (ink && glass) {
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+  motion.hidden = false;
+  motion.addEventListener('click', () => { paused = !paused; updatePlayback(); });
+  preference.addEventListener('change', () => { paused = preference.matches; updatePlayback(); });
+  document.addEventListener('visibilitychange', updatePlayback);
+  updatePlayback();
+}
