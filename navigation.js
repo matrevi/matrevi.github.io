@@ -2,7 +2,9 @@
 const chapters = ['services', 'cases', 'delivery', 'acceptance', 'team', 'contact'];
 function openBookmarkedChapter() {
   const chapter = location.hash.slice(1);
-  if (document.body.classList.contains('home') && chapters.includes(chapter)) {
+  // Skip anchors that exist on the home page itself, such as #team.
+  if (document.body.classList.contains('home') && chapters.includes(chapter) &&
+      !document.getElementById(chapter)) {
     location.replace(chapter + '.html');
   }
 }

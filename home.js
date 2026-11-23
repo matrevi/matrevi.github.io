@@ -12,18 +12,22 @@ if (bar && cover) {
   syncBar();
   addEventListener('scroll', syncBar, { passive: true });
 
-  // Highlight the nav link of the section in view.
-  const links = [...bar.querySelectorAll('.navlinks a')];
-  const spy = new IntersectionObserver(entries => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      for (const link of links) link.toggleAttribute('aria-current', link.hash === '#' + entry.target.id);
+  // Highlight the nav link (or the contact button) of the section in view.
+  const links = [...bar.querySelectorAll('.navlinks a, .contact-link')];
+  const sections = links.map(link => document.querySelector(link.hash)).filter(Boolean);
+  const syncCurrent = () => {
+    const line = innerHeight * .4;
+    let current = null;
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top <= line) current = section;
     }
-  }, { rootMargin: '-45% 0px -50% 0px' });
-  for (const link of links) {
-    const section = document.querySelector(link.hash);
-    if (section) spy.observe(section);
-  }
+    // At the very bottom the last section is too short to reach the line.
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) current = sections[sections.length - 1];
+    for (const link of links) link.toggleAttribute('aria-current', !!current && link.hash === '#' + current.id);
+  };
+  syncCurrent();
+  addEventListener('scroll', syncCurrent, { passive: true });
+  addEventListener('resize', syncCurrent);
 }
 
 const revealer = new IntersectionObserver(entries => {
