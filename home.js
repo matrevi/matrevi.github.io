@@ -30,6 +30,20 @@ if (bar && cover) {
   addEventListener('resize', syncCurrent);
 }
 
+// Cover CTA and scroll hint: land with the "WHAT WE DO" eyebrow 20px below the fixed bar.
+// (The nav-bar "业务范围" link keeps the default anchor behaviour.)
+const whatEyebrow = document.querySelector('#what .eyebrow');
+if (bar && whatEyebrow) document.querySelectorAll('.cover a[href="#what"]').forEach(link => {
+  link.addEventListener('click', event => {
+    event.preventDefault();
+    // offsetTop ignores the reveal transform, so this is the eyebrow's resting position.
+    let top = 0;
+    for (let el = whatEyebrow; el; el = el.offsetParent) top += el.offsetTop;
+    scrollTo({ top: Math.max(0, top - bar.offsetHeight - 20), behavior: reduce ? 'auto' : 'smooth' });
+    history.pushState(null, '', '#what');
+  });
+});
+
 const revealer = new IntersectionObserver(entries => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
